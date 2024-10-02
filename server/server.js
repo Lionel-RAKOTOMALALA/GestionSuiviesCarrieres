@@ -2,6 +2,9 @@ import express from 'express';
 import morgan from 'morgan';
 import connect from './database/conn.js';
 import router from './router/route.js';
+import employeRoutes from './router/employeRoutes.js';
+import carriereRoutes from './router/carriereRoutes.js';
+import decisionRoutes from './router/decisionRoutes.js';
 import cors from 'cors';
 
 const app = express();
@@ -24,6 +27,9 @@ app.get('/', (req, res) => {
 
 /** api routes */
 app.use('/api', router);
+app.use('/api/employes', employeRoutes);
+app.use('/api/carrieres', carriereRoutes);
+app.use('/api/decisions', decisionRoutes);
 
 /** Start server only and connect database */
 connect().then(() => {

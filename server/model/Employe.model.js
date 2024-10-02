@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const { Schema } = mongoose;
+const { Schema } = mongoose; // Extraire Schema depuis mongoose
 
 export const UserSchema = new Schema({
     username: {
@@ -36,10 +36,6 @@ export const UserSchema = new Schema({
     address: {
         type: String,
     },
-    role: {
-        type: String,
-        required: [true, "Please provide user role"],  // Assurez-vous que ce champ existe
-    }
 });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);
