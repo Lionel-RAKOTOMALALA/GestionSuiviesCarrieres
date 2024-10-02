@@ -17,7 +17,7 @@ L'application repose sur le stack MERN (MongoDB, Express, React, Node.js), garan
 
 
 
-git clone https://github.com/tonrepo/gestion-carriere-srsp.git
+git clone https://github.com/Lionel-RAKOTOMALALA/GestionSuiviesCarrieres.git
 
 2️⃣ Installer les dépendances du serveur et du client :
 
