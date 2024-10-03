@@ -12,8 +12,10 @@ export const AffectationEmployeSchema = new Schema({
         type: Date,
         required: [true, "Please provide assignment date"],
     },
+    // Change `id_employe` to `ObjectId` type to reference the employee
     id_employe: {
-        type: Number,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Employe',  // This sets up a reference to the `Employe` model
         required: [true, "Please provide employee ID"],
     },
     id_service: {
