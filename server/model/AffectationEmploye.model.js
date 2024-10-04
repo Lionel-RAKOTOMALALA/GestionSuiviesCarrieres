@@ -2,29 +2,25 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-export const AffectationEmployeSchema = new Schema({
-    id_affectation: {
-        type: Number,
-        required: [true, "Please provide assignment ID"],
-        unique: [true, "Assignment ID exists"]
-    },
+const AffectationEmployeSchema = new Schema({
     date_affectation: {
         type: Date,
-        required: [true, "Please provide assignment date"],
-    },
-    // Change `id_employe` to `ObjectId` type to reference the employee
-    id_employe: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Employe',  // This sets up a reference to the `Employe` model
-        required: [true, "Please provide employee ID"],
+        required: [true, "Please provide the assignment date"],
     },
     id_service: {
-        type: Number,
-        required: [true, "Please provide service ID"],
+        type: mongoose.Schema.Types.ObjectId,  // Utilisation d'ObjectId pour les relations
+        ref: "Service",
+        required: true
     },
     id_poste: {
-        type: Number,
-        required: [true, "Please provide post ID"],
+        type: mongoose.Schema.Types.ObjectId,  // Utilisation d'ObjectId pour les relations
+        ref: "Poste",
+        required: true
+    },
+    id_employe: {
+        type: mongoose.Schema.Types.ObjectId,  // Référence à l'employé avec ObjectId
+        ref: "User",
+        required: true
     }
 });
 

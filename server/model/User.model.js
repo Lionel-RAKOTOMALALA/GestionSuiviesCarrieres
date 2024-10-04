@@ -27,9 +27,9 @@ export const UserSchema = new Schema({
         type: String,
     },
     mobile: {
-        type: Number,
-        match: [/\d{10}/, "Please provide a valid 10-digit mobile number"],
-    },
+        type: String,
+        match: [/^\d{10}$/, "Please provide a valid 10-digit mobile number"],  // 10 chiffres
+      },      
     profile: {
         type: String,
     },

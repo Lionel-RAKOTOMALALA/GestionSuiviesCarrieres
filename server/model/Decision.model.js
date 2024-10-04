@@ -18,7 +18,7 @@ export const DecisionSchema = new Schema({
     },
     id_employe: {
         type: mongoose.Schema.Types.ObjectId, // Correction ici pour utiliser ObjectId
-        ref: 'Employe', // Référence au modèle Employe
+        ref: 'User', // Référence au modèle Employe
         required: [true, "Please provide employee ID"],
     }
 });
