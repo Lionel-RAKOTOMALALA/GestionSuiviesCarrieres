@@ -5,21 +5,33 @@ const { Schema } = mongoose;
 export const NotificationSchema = new Schema({
     id_notification: {
         type: Number,
-        required: [true, "Please provide notification ID"],
-        unique: [true, "Notification ID exists"]
+        required: [true, "Please provide alert ID"],
+        unique: [true, "Alert ID exists"]
     },
-    message: {
+    id_utilisateur: {
+        type: mongoose.Schema.Types.ObjectId, // Référence à l'utilisateur avec ObjectId
+        ref: 'User', // Référence au modèle User
+        required: false // Champ nullable
+    },
+    type_alerte: {
         type: String,
-        required: [true, "Please provide notification message"],
+        required: [true, "Please provide alert type"],
+        maxlength: [50, "Alert type cannot exceed 50 characters"]
     },
-    date_envoi: {
+    message_alerte: {
+        type: String,
+        required: [true, "Please provide alert message"]
+    },
+    date_creation: {
         type: Date,
-        required: [true, "Please provide sending date"],
+        required: [true, "Please provide creation date"],
+        default: Date.now // Définit la date de création par défaut à la date actuelle
     },
-    id_employe: {
-        type: Number,
-        required: [true, "Please provide employee ID"],
+    est_vue: {
+        type: Boolean,
+        default: false // Statut par défaut à non vue
     }
-});
+}, { timestamps: true });  // Ajout des timestamps pour le suivi des créations et mises à jour
+
 
 export default mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);

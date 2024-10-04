@@ -4,165 +4,187 @@ import StatutEmploye from '../model/StatutEmploye.model.js';
 import AffectationEmploye from '../model/AffectationEmploye.model.js';
 import Diplome from '../model/Diplome.model.js';
 import Decision from '../model/Decision.model.js';
+import JournalDesActions from '../model/JournalDesActions.model.js';
+import Notification from '../model/Notification.model.js';
 
+// Fonction pour enregistrer les actions et les notifications
+const enregistrerActionEtNotification = async (session, action, employeId, message) => {
+    const journalAction = new JournalDesActions({ action, employeId });
+    const notification = new Notification({ message, employeId });
+
+    await journalAction.save({ session });
+    await notification.save({ session });
+};
+
+// Ajouter un nouvel employé
 export const ajouterNouvelEmploye = async (req, res) => {
-  const { employeData, statutData, affectationData, diplomeData, decisionData } = req.body;
+  const { employe, statut, affectation, diplome, decision } = req.body;
   const session = await mongoose.startSession();
   session.startTransaction();
+
   try {
-    // Créer et sauvegarder l'employé
-    const employe = new Employe(employeData);
-    await employe.save({ session });
+      // Créer et sauvegarder l'employé
+      const employeData = new Employe(employe);
+      await employeData.save({ session });
+      
 
-    // Créer et sauvegarder le statut de l'employé
-    const statut = new StatutEmploye({ ...statutData, employeId: employe._id });
-    await statut.save({ session });
+      // Créer et sauvegarder le statut de l'employé
+      const statutData = new StatutEmploye({ ...statut, id_employe: employeData._id });
+      await statutData.save({ session });
+      
 
-    // Ajouter l'ID de l'employé à l'affectation avant de la sauvegarder
-    const affectation = new AffectationEmploye({ 
-      ...affectationData, 
-      id_employe: employe._id // Utiliser l'ID de l'employé nouvellement créé
-    });
-    await affectation.save({ session });
-
-    // Sauvegarder les informations de diplôme, si disponibles
-    if (diplomeData) {
-      const diplome = new Diplome({ 
-        ...diplomeData, 
-        id_employe: employe._id // Assigner l'ID employé
+      // Ajouter l'ID de l'employé à l'affectation avant de la sauvegarder
+      const affectationData = new AffectationEmploye({ 
+          ...affectation, 
+          id_employe: employeData._id 
       });
-      await diplome.save({ session });
-    }
+      await affectationData.save({ session });
+      
 
-    // Sauvegarder les informations de décision, si disponibles
-    if (decisionData) {
-      const decision = new Decision({ 
-        ...decisionData, 
-        id_employe: employe._id // Assigner l'ID employé ici également
-      });
-      await decision.save({ session });
-    }
+      // Sauvegarder les informations de diplôme, si disponibles
+      if (diplome) {
+          const diplomeData = new Diplome({ 
+              ...diplome, 
+              id_employe: employeData._id 
+          });
+          await diplomeData.save({ session });
+          
+      }
 
-    // Valider la transaction
-    await session.commitTransaction();
-    session.endSession();
+      // Sauvegarder les informations de décision, si disponibles
+      if (decision) {
+          const decisionData = new Decision({ 
+              ...decision, 
+              id_employe: employeData._id 
+          });
+          await decisionData.save({ session });
+          
+      }
 
-    // Répondre avec succès
-    res.status(201).json({ employe });
+      // Valider la transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      // Répondre avec succès
+      res.status(201).json({ employe: employeData });
   } catch (error) {
-    // Annuler la transaction en cas d'erreur
-    await session.abortTransaction();
-    session.endSession();
-    res.status(500).json({ error: error.message });
+      // Annuler la transaction en cas d'erreur
+      await session.abortTransaction();
+      session.endSession();
+      res.status(500).json({ error: error.message });
   }
 };
 
+
+// Obtenir les détails d'un employé
 export const obtenirDetailsEmploye = async (req, res) => {
-  const { employeId } = req.params;
+    const { employeId } = req.params;
 
-  try {
-    // Récupérer les informations de l'employé
-    const employe = await Employe.findById(employeId);
-    if (!employe) {
-      return res.status(404).json({ message: "Employé non trouvé" });
+    try {
+        // Récupérer les informations de l'employé
+        const employe = await Employe.findById(employeId);
+        if (!employe) {
+            return res.status(404).json({ message: "Employé non trouvé" });
+        }
+
+        // Récupérer les informations liées à cet employé
+        const statutEmploye = await StatutEmploye.findOne({ id_employe: employeId });
+        const affectationEmploye = await AffectationEmploye.findOne({ id_employe: employeId });
+        const diplomesEmploye = await Diplome.find({ id_employe: employeId });
+        const decisionsEmploye = await Decision.find({ id_employe: employeId });
+
+        // Construire la réponse avec toutes les données
+        const employeDetails = {
+            employe,
+            statut: statutEmploye,
+            affectation: affectationEmploye,
+            diplomes: diplomesEmploye,
+            decisions: decisionsEmploye
+        };
+
+        // Envoyer la réponse avec toutes les données liées à l'employé
+        res.status(200).json(employeDetails);
+    } catch (error) {
+        // En cas d'erreur, envoyer une réponse d'erreur
+        res.status(500).json({ error: error.message });
     }
-
-    // Récupérer les informations liées à cet employé
-    const statutEmploye = await StatutEmploye.findOne({ employeId });
-    const affectationEmploye = await AffectationEmploye.findOne({ id_employe: employeId });
-    const diplomesEmploye = await Diplome.find({ id_employe: employeId });
-    const decisionsEmploye = await Decision.find({ id_employe: employeId });
-
-    // Construire la réponse avec toutes les données
-    const employeDetails = {
-      employe,
-      statut: statutEmploye,
-      affectation: affectationEmploye,
-      diplomes: diplomesEmploye,
-      decisions: decisionsEmploye
-    };
-
-    // Envoyer la réponse avec toutes les données liées à l'employé
-    res.status(200).json(employeDetails);
-
-  } catch (error) {
-    // En cas d'erreur, envoyer une réponse d'erreur
-    res.status(500).json({ error: error.message });
-  }
 };
+
+// Afficher tous les employés
 export const afficherTousLesEmployes = async (req, res) => {
-  try {
-    // 1. Récupérer la liste de tous les employés
-    const employes = await Employe.find();
+    try {
+        // Récupérer la liste de tous les employés
+        const employes = await Employe.find();
 
-    // 2. Vérifier si des employés existent
-    if (!employes || employes.length === 0) {
-      return res.status(404).json({ message: 'Aucun employé trouvé' });
+        // Vérifier si des employés existent
+        if (!employes || employes.length === 0) {
+            return res.status(404).json({ message: 'Aucun employé trouvé' });
+        }
+
+        // Pour chaque employé, récupérer les informations associées
+        const employeDetails = await Promise.all(employes.map(async (employe) => {
+            const statut = await StatutEmploye.findOne({ id_employe: employe._id });
+            const affectation = await AffectationEmploye.findOne({ id_employe: employe._id });
+            const diplome = await Diplome.findOne({ id_employe: employe._id });
+            const decision = await Decision.findOne({ id_employe: employe._id });
+
+            // Retourner les détails de chaque employé
+            return {
+                employe,
+                statut,
+                affectation,
+                diplome,
+                decision,
+            };
+        }));
+
+        // Répondre avec les détails des employés
+        res.status(200).json(employeDetails);
+    } catch (error) {
+        // En cas d'erreur, retourner une erreur 500 avec le message d'erreur
+        res.status(500).json({ error: error.message });
     }
-
-    // 3. Pour chaque employé, récupérer les informations associées
-    const employeDetails = await Promise.all(employes.map(async (employe) => {
-      const statut = await StatutEmploye.findOne({ employeId: employe._id });
-      const affectation = await AffectationEmploye.findOne({ id_employe: employe._id });
-      const diplome = await Diplome.findOne({ id_employe: employe._id });
-      const decision = await Decision.findOne({ id_employe: employe._id });
-
-      // Retourner les détails de chaque employé
-      return {
-        employe,
-        statut,
-        affectation,
-        diplome,
-        decision,
-      };
-    }));
-
-    // 4. Répondre avec les détails des employés
-    res.status(200).json(employeDetails);
-  } catch (error) {
-    // En cas d'erreur, retourner une erreur 500 avec le message d'erreur
-    res.status(500).json({ error: error.message });
-  }
 };
+
 // Récupérer la liste d'affectations d'un employé, triée par date
 export const afficherTousLesEmployesAvecAffectationsTriees = async (req, res) => {
-  try {
-    // 1. Récupérer la liste de tous les employés
-    const employes = await Employe.find();
+    try {
+        // Récupérer la liste de tous les employés
+        const employes = await Employe.find();
 
-    // 2. Vérifier si des employés existent
-    if (!employes || employes.length === 0) {
-      return res.status(404).json({ message: 'Aucun employé trouvé' });
+        // Vérifier si des employés existent
+        if (!employes || employes.length === 0) {
+            return res.status(404).json({ message: 'Aucun employé trouvé' });
+        }
+
+        // Pour chaque employé, récupérer les informations associées
+        const employeDetails = await Promise.all(employes.map(async (employe) => {
+            const affectations = await AffectationEmploye.find({ id_employe: employe._id })
+                .sort({ date_prise_service: 1 }); // Tri par date de prise de service
+
+            const diplome = await Diplome.findOne({ id_employe: employe._id });
+            const decision = await Decision.findOne({ id_employe: employe._id });
+
+            // Retourner les détails de chaque employé avec les affectations triées
+            return {
+                employe,
+                affectations: affectations.length > 0 ? affectations : null,
+                diplome: diplome || null,
+                decision: decision || null,
+            };
+        }));
+
+        // Trier les employés par la date de prise de service de la première affectation
+        const employeDetailsTriees = employeDetails.sort((a, b) => {
+            const dateA = a.affectations ? a.affectations[0].date_prise_service : new Date(0);
+            const dateB = b.affectations ? b.affectations[0].date_prise_service : new Date(0);
+            return dateA - dateB;
+        });
+
+        // Retourner les détails des employés avec leurs affectations triées
+        res.status(200).json(employeDetailsTriees);
+    } catch (error) {
+        // Gérer les erreurs en renvoyant un message d'erreur
+        res.status(500).json({ error: error.message });
     }
-
-    // 3. Pour chaque employé, récupérer les informations associées
-    const employeDetails = await Promise.all(employes.map(async (employe) => {
-      const affectations = await AffectationEmploye.find({ id_employe: "66ffb922c591580c4733bf34d" })
-        .sort({ date_affectation: 1 }); // Tri par date d'affectation
-
-      const diplome = await Diplome.findOne({ id_employe: employe._id });
-      const decision = await Decision.findOne({ id_employe: employe._id });
-
-      // Retourner les détails de chaque employé avec les affectations triées
-      return {
-        employe,
-        affectations, // Inclure toutes les affectations triées
-        diplome,
-        decision,
-      };
-    }));
-
-    // 4. Trier les employés par la date d'affectation de la première affectation
-    const employeDetailsTriees = employeDetails.sort((a, b) => {
-      const dateA = a.affectations.length > 0 ? a.affectations[0].date_affectation : new Date(0);
-      const dateB = b.affectations.length > 0 ? b.affectations[0].date_affectation : new Date(0);
-      return dateA - dateB;
-    });
-
-    // 5. Retourner les détails des employés avec leurs affectations triées
-    res.status(200).json(employeDetailsTriees);
-  } catch (error) {
-    // Gérer les erreurs en renvoyant un message d'erreur
-    res.status(500).json({ error: error.message });
-  }
 };

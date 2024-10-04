@@ -38,7 +38,6 @@ export const UserSchema = new Schema({
     },
     role: {
         type: String,
-        required: [true, "Please provide user role"],  // Assurez-vous que ce champ existe
     }
 });
 
