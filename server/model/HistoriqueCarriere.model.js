@@ -5,37 +5,37 @@ const { Schema } = mongoose;
 // Définition du schéma HistoriqueCarriere
 const HistoriqueCarriereSchema = new Schema({
     id_employe: {
-        type: mongoose.Schema.Types.ObjectId,  // Référence à l'employé avec ObjectId
-        ref: "Employe",  // Référence à la collection Employe
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Employe",
         required: true
     },
     poste_et_fonction: {
-        type: String,  // Poste et fonction au moment de l'événement
+        type: String,
         required: [true, "Please provide the position and function"],
         maxlength: [255, "Position and function cannot exceed 255 characters"]
     },
     date_debut_poste: {
-        type: Date,  // Date de début du poste
+        type: Date,
         required: [true, "Please provide the start date of the position"]
     },
     date_fin_poste: {
-        type: Date,  // Date de fin du poste (nullable)
-        default: null  // Ce champ peut être null s'il n'y a pas de date de fin
+        type: Date,
+        default: null
     },
     numero_decision: {
-        type: String,  // Numéro de la décision associée
+        type: String,
         required: [true, "Please provide the decision number"],
         maxlength: [255, "Decision number cannot exceed 255 characters"]
     },
     date_decision: {
-        type: Date,  // Date de la décision associée
+        type: Date,
         required: [true, "Please provide the decision date"]
     },
     obs: {
-        type: String,  // Observations spécifiques
+        type: String,
         maxlength: [500, "Observations cannot exceed 500 characters"],
-        default: null  // Ce champ peut être null
+        default: null
     }
-}, { timestamps: true });  // Ajout de createdAt et updatedAt automatiquement
+}, { timestamps: true });
 
 export default mongoose.models.HistoriqueCarriere || mongoose.model('HistoriqueCarriere', HistoriqueCarriereSchema);

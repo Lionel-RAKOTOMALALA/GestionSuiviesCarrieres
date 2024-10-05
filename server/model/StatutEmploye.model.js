@@ -35,7 +35,7 @@ export const StatutEmployeSchema = new Schema({
         maxlength: [50, "Grade cannot exceed 50 characters"] // Limitation de la taille
     },
     indice: {
-        type: Number,
+        type: String,
         required: [true, "Please provide employee indice"], // Champ obligatoire
     },
     situation_non_encadres: {

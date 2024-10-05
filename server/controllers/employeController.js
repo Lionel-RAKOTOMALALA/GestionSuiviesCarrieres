@@ -8,9 +8,22 @@ import JournalDesActions from '../model/JournalDesActions.model.js';
 import Notification from '../model/Notification.model.js';
 
 // Fonction pour enregistrer les actions et les notifications
-const enregistrerActionEtNotification = async (session, action, employeId, message) => {
-    const journalAction = new JournalDesActions({ action, employeId });
-    const notification = new Notification({ message, employeId });
+const enregistrerActionEtNotification = async (session, utilisateurId, action, message) => {
+    const date_action = new Date(); // Créer automatiquement la date d'action
+    const journalAction = new JournalDesActions({
+        id_utilisateur: utilisateurId,
+        action,
+        date_action,
+        details: `Action réalisée par l'utilisateur avec ID ${utilisateurId}`
+    });
+
+    const notification = new Notification({
+        id_utilisateur: utilisateurId,
+        type_alerte: "information", // Par exemple, une alerte de type "information"
+        message_alerte: message,
+        date_creation: new Date(), // Ajouter la date de création
+        estVu: false // Initialiser à 'false', car la notification n'est pas encore vue
+    });
 
     await journalAction.save({ session });
     await notification.save({ session });
@@ -18,61 +31,65 @@ const enregistrerActionEtNotification = async (session, action, employeId, messa
 
 // Ajouter un nouvel employé
 export const ajouterNouvelEmploye = async (req, res) => {
-  const { employe, statut, affectation, diplome, decision } = req.body;
-  const session = await mongoose.startSession();
-  session.startTransaction();
+    const { userId, username } = req.user; // Récupérer l'userId et le username de l'utilisateur connecté
+    const { employe, statut, affectation, diplome, decision } = req.body;
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-      // Créer et sauvegarder l'employé
-      const employeData = new Employe(employe);
-      await employeData.save({ session });
-      
+    try {
+        // Créer et sauvegarder l'employé
+        const employeData = new Employe(employe);
+        await employeData.save({ session });
 
-      // Créer et sauvegarder le statut de l'employé
-      const statutData = new StatutEmploye({ ...statut, id_employe: employeData._id });
-      await statutData.save({ session });
-      
+        // Créer et sauvegarder le statut de l'employé
+        const statutData = new StatutEmploye({ ...statut, id_employe: employeData._id });
+        await statutData.save({ session });
 
-      // Ajouter l'ID de l'employé à l'affectation avant de la sauvegarder
-      const affectationData = new AffectationEmploye({ 
-          ...affectation, 
-          id_employe: employeData._id 
-      });
-      await affectationData.save({ session });
-      
+        // Ajouter l'ID de l'employé à l'affectation avant de la sauvegarder
+        const affectationData = new AffectationEmploye({
+            ...affectation,
+            id_employe: employeData._id
+        });
+        await affectationData.save({ session });
 
-      // Sauvegarder les informations de diplôme, si disponibles
-      if (diplome) {
-          const diplomeData = new Diplome({ 
-              ...diplome, 
-              id_employe: employeData._id 
-          });
-          await diplomeData.save({ session });
-          
-      }
+        // Sauvegarder les informations de diplôme, si disponibles
+        if (diplome) {
+            const diplomeData = new Diplome({
+                ...diplome,
+                id_employe: employeData._id
+            });
+            await diplomeData.save({ session });
+        }
 
-      // Sauvegarder les informations de décision, si disponibles
-      if (decision) {
-          const decisionData = new Decision({ 
-              ...decision, 
-              id_employe: employeData._id 
-          });
-          await decisionData.save({ session });
-          
-      }
+        // Sauvegarder les informations de décision, si disponibles
+        if (decision) {
+            const decisionData = new Decision({
+                ...decision,
+                id_employe: employeData._id
+            });
+            await decisionData.save({ session });
+        }
 
-      // Valider la transaction
-      await session.commitTransaction();
-      session.endSession();
+        // Enregistrer l'action et la notification
+        await enregistrerActionEtNotification(
+            session,
+            userId, // Passer l'ID de l'utilisateur connecté
+            `Ajout de l'employé ${employe.nom} par ${username}`, // Action détaillée
+            "Un nouvel employé a été ajouté." // Message de notification
+        );
 
-      // Répondre avec succès
-      res.status(201).json({ employe: employeData });
-  } catch (error) {
-      // Annuler la transaction en cas d'erreur
-      await session.abortTransaction();
-      session.endSession();
-      res.status(500).json({ error: error.message });
-  }
+        // Valider la transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        // Répondre avec succès
+        res.status(201).json({ employe: employeData });
+    } catch (error) {
+        // Annuler la transaction en cas d'erreur
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({ error: error.message });
+    }
 };
 
 

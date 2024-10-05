@@ -4,11 +4,6 @@ const { Schema } = mongoose;
 
 // Définition du schéma Decision
 const DecisionSchema = new Schema({
-    id_decision: {
-        type: Number,
-        required: [true, "Please provide decision ID"],
-        unique: [true, "Decision ID exists"]
-    },
     numero_decision: {
         type: String,
         required: [true, "Please provide the decision number"],
@@ -23,10 +18,11 @@ const DecisionSchema = new Schema({
         maxlength: [1000, "Observations cannot exceed 1000 characters"]
     },
     id_employe: {
-        type: mongoose.Schema.Types.ObjectId, // Référence à l'employé avec ObjectId
-        ref: 'User', // Référence au modèle User
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User',
         required: [true, "Please provide employee ID"]
     }
-}, { timestamps: true });  // Ajout des timestamps pour suivi des créations et mises à jour
+}, { timestamps: true });
 
 export default mongoose.models.Decision || mongoose.model('Decision', DecisionSchema);
+

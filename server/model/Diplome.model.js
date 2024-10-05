@@ -2,13 +2,9 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
+
 // Définition du schéma Diplome
 const DiplomeSchema = new Schema({
-    id_diplome: {
-        type: Number,
-        required: [true, "Please provide diploma ID"],
-        unique: [true, "Diploma ID exists"]
-    },
     diplome: {
         type: String,
         required: [true, "Please provide the diploma obtained"],
@@ -28,10 +24,10 @@ const DiplomeSchema = new Schema({
         maxlength: [255, "Libre field name cannot exceed 255 characters"]
     },
     id_employe: {
-        type: mongoose.Schema.Types.ObjectId,  // Référence à l'employé avec ObjectId
-        ref: 'User',  // Référence au modèle User
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: [true, "Please provide employee ID"]
     }
-}, { timestamps: true });  // Ajout des timestamps pour suivi des créations et mises à jour
+}, { timestamps: true });
 
 export default mongoose.models.Diplome || mongoose.model('Diplome', DiplomeSchema);
