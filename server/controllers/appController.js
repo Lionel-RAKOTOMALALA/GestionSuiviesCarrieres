@@ -139,6 +139,7 @@
 
                 // Utilisation d'async/await pour updateOne sans callback
                 const result = await UserModel.updateOne({ _id: userId }, body);
+                
 
                 if (result.matchedCount === 0) {
                     return res.status(404).send({ error: "User Not Found...!" });

@@ -7,27 +7,7 @@ import Decision from '../model/Decision.model.js';
 import JournalDesActions from '../model/JournalDesActions.model.js';
 import Notification from '../model/Notification.model.js';
 
-// Fonction pour enregistrer les actions et les notifications
-const enregistrerActionEtNotification = async (session, utilisateurId, action, message) => {
-    const date_action = new Date(); // Créer automatiquement la date d'action
-    const journalAction = new JournalDesActions({
-        id_utilisateur: utilisateurId,
-        action,
-        date_action,
-        details: `Action réalisée par l'utilisateur avec ID ${utilisateurId}`
-    });
-
-    const notification = new Notification({
-        id_utilisateur: utilisateurId,
-        type_alerte: "information", // Par exemple, une alerte de type "information"
-        message_alerte: message,
-        date_creation: new Date(), // Ajouter la date de création
-        estVu: false // Initialiser à 'false', car la notification n'est pas encore vue
-    });
-
-    await journalAction.save({ session });
-    await notification.save({ session });
-};
+                       
 
 // Ajouter un nouvel employé
 export const ajouterNouvelEmploye = async (req, res) => {
@@ -93,6 +73,60 @@ export const ajouterNouvelEmploye = async (req, res) => {
 };
 
 
+// Mettre à jour un employé
+export const mettreAJourEmploye = async (req, res) => {
+    const { employeId } = req.params;
+    const { userId, username } = req.user; // Récupérer l'userId et le username de l'utilisateur connecté
+    const { employe, statut, affectation, diplome, decision } = req.body; // Récupérer les données de la requête
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Mettre à jour l'employé
+        const employeData = await Employe.findByIdAndUpdate(employeId, employe, { new: true, session });
+
+        if (!employeData) {
+            return res.status(404).json({ message: "Employé non trouvé" });
+        }
+
+        // Mettre à jour le statut de l'employé
+        await StatutEmploye.findOneAndUpdate({ id_employe: employeId }, statut, { new: true, session });
+
+        // Mettre à jour l'affectation de l'employé
+        await AffectationEmploye.findOneAndUpdate({ id_employe: employeId }, affectation, { new: true, session });
+
+        // Mettre à jour les informations de diplôme, si disponibles
+        if (diplome) {
+            await Diplome.findOneAndUpdate({ id_employe: employeId }, diplome, { new: true, session });
+        }
+
+        // Mettre à jour les informations de décision, si disponibles
+        if (decision) {
+            await Decision.findOneAndUpdate({ id_employe: employeId }, decision, { new: true, session });
+        }
+
+        // Enregistrer l'action et la notification
+        await enregistrerActionEtNotification(
+            session,
+            userId, // Passer l'ID de l'utilisateur connecté
+            `Mise à jour de l'employé ${employe.nom} par ${username}`, // Action détaillée
+            "Les informations de l'employé ont été mises à jour." // Message de notification
+        );
+
+        // Valider la transaction
+        await session.commitTransaction();
+        session.endSession();
+
+        // Répondre avec succès
+        res.status(200).json({ employe: employeData });
+    } catch (error) {
+        // Annuler la transaction en cas d'erreur
+        await session.abortTransaction();
+        session.endSession();
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // Obtenir les détails d'un employé
 export const obtenirDetailsEmploye = async (req, res) => {
     const { employeId } = req.params;
@@ -101,7 +135,7 @@ export const obtenirDetailsEmploye = async (req, res) => {
         // Récupérer les informations de l'employé
         const employe = await Employe.findById(employeId);
         if (!employe) {
-            return res.status(404).json({ message: "Employé non trouvé" });
+            return res.status(404).json({ message: "Employé non trouvé", employeId             });
         }
 
         // Récupérer les informations liées à cet employé

@@ -3,7 +3,11 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 export const NotificationSchema = new Schema({
-
+    id_notification: {
+        type: String,
+        default: () => new mongoose.Types.ObjectId().toString(), // Génère un ID unique si non fourni
+        unique: true // Assurez-vous que l'ID est unique
+    },
     id_utilisateur: {
         type: mongoose.Schema.Types.ObjectId, // Référence à l'utilisateur avec ObjectId
         ref: 'User', // Référence au modèle User
