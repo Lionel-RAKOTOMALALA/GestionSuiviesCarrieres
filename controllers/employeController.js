@@ -167,14 +167,18 @@ export const obtenirDetailsEmploye = async (req, res) => {
         const affectationEmploye = await AffectationEmploye.findOne({ id_employe: employeId });
         const diplomesEmploye = await Diplome.find({ id_employe: employeId });
         const decisionsEmploye = await Decision.find({ id_employe: employeId });
+        const posteEmploye = await PosteModel.find({ id_employe: employeId });
+        const serviceEmploye = await ServiceModel.find({ id_employe: employeId });
 
         // Construire la réponse avec toutes les données
         const employeDetails = {
             employe,
             statut: statutEmploye,
             affectation: affectationEmploye,
-            diplomes: diplomesEmploye,
-            decisions: decisionsEmploye
+            diplome: diplomesEmploye,
+            decision: decisionsEmploye,
+            poste: posteEmploye, 
+            service: serviceEmploye 
         };
 
         // Envoyer la réponse avec toutes les données liées à l'employé
