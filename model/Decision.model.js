@@ -5,11 +5,7 @@ const { Schema } = mongoose;
 // Définition du schéma Decision
 const DecisionSchema = new Schema({
 
-    id_decision: {
-        type: String,
-        required: [true, "Please provide the decision ID"], // Assurez-vous que ce champ est requis
-        unique: true // Si nécessaire, assurez-vous qu'il soit unique
-    },
+
     numero_decision: {
         type: String,
         required: [true, "Please provide the decision number"],

@@ -4,6 +4,16 @@ const { Schema } = mongoose;
 
 // Définition du schéma AffectationEmploye
 const AffectationEmployeSchema = new Schema({
+    id_employe: {
+        type: Schema.Types.ObjectId,
+        ref: 'Employe',
+        required: true
+    },
+    poste: {
+        type: Schema.Types.ObjectId,
+        ref: 'Poste',
+        required: true
+    },
     date_entree_admin: {
         type: Date,
         required: [true, "Please provide the entry date to administration"]

@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 
 // Définition du schéma Poste
 const PosteSchema = new Schema({
+
     titre_poste: {
         type: String,  // Titre du poste
         required: [true, "Please provide the job title"],

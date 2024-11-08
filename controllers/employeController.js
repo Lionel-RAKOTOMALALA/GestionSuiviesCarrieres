@@ -18,18 +18,40 @@ export const ajouterNouvelEmploye = async (req, res) => {
     session.startTransaction();
 
     try {
-        // Créer et sauvegarder l'employé
-        const employeData = new Employe(employe);
+        // Sauvegarder le poste, si disponible, et récupérer son ID
+        let posteId = null;
+        if (poste) {
+            const posteData = new PosteModel(poste);
+            const savedPoste = await posteData.save({ session });
+            posteId = savedPoste._id;
+        }
+
+        // Sauvegarder le service, si disponible, et récupérer son ID
+        let serviceId = null;
+        if (service) {
+            const serviceData = new ServiceModel(service);
+            const savedService = await serviceData.save({ session });
+            serviceId = savedService._id;
+        }
+
+        // Créer et sauvegarder l'employé avec les IDs de poste et de service
+        const employeData = new Employe({
+            ...employe,
+            poste: posteId,     // Assigner l'ID du poste
+            service: serviceId  // Assigner l'ID du service
+        });
         await employeData.save({ session });
 
         // Créer et sauvegarder le statut de l'employé
         const statutData = new StatutEmploye({ ...statut, id_employe: employeData._id });
         await statutData.save({ session });
 
-        // Ajouter l'ID de l'employé à l'affectation avant de la sauvegarder
+        // Ajouter l'ID de l'employé ainsi que les IDs de poste et de service à l'affectation avant de la sauvegarder
         const affectationData = new AffectationEmploye({
             ...affectation,
-            id_employe: employeData._id
+            id_employe: employeData._id, // Lier l'affectation à l'employé (utiliser `id_employe` au lieu de `employe`)
+            poste: posteId,              // Lier l'affectation au poste
+            service: serviceId           // Lier l'affectation au service
         });
         await affectationData.save({ session });
 
@@ -51,30 +73,12 @@ export const ajouterNouvelEmploye = async (req, res) => {
             await decisionData.save({ session });
         }
 
-        // Sauvegarder le poste, si disponible
-        if (poste) {
-            const posteData = new PosteModel({
-                ...poste,
-                id_employe: employeData._id // Si vous voulez faire le lien avec l'employé
-            });
-            await posteData.save({ session });
-        }
-
-        // Sauvegarder le service, si disponible
-        if (service) {
-            const serviceData = new ServiceModel({
-                ...service,
-                id_employe: employeData._id // Si vous voulez faire le lien avec l'employé
-            });
-            await serviceData.save({ session });
-        }
-
         // Enregistrer l'action et la notification
         await enregistrerActionEtNotification(
             session,
-            userId, // Passer l'ID de l'utilisateur connecté
-            `Ajout de l'employé ${employe.nom} par ${username}`, // Action détaillée
-            "Un nouvel employé a été ajouté." // Message de notification
+            userId,
+            `Ajout de l'employé ${employe.nom} par ${username}`,
+            "Un nouvel employé a été ajouté."
         );
 
         // Valider la transaction
@@ -97,27 +101,136 @@ export const ajouterNouvelEmploye = async (req, res) => {
 
 
 
-// Mettre à jour un employé
-export const mettreAJourEmploye = async (req, res) => {
-    const { employeId } = req.params;
+
+// Supprimer un employé avec toutes ses données associées
+export const supprimerEmploye = async (req, res) => {
     const { userId, username } = req.user; // Récupérer l'userId et le username de l'utilisateur connecté
-    const { employe, statut, affectation, diplome, decision } = req.body; // Récupérer les données de la requête
+    const { employeId } = req.params; // ID de l'employé à supprimer
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        // Mettre à jour l'employé
+        // Récupérer l'employé à supprimer
+        const employeData = await Employe.findById(employeId).session(session);
+        if (!employeData) {
+            return res.status(404).json({ error: "Employé non trouvé." });
+        }
+
+        // Supprimer les affectations liées à l'employé
+        await AffectationEmploye.deleteMany({ id_employe: employeId }).session(session);
+
+        // Supprimer les statuts liés à l'employé
+        await StatutEmploye.deleteMany({ id_employe: employeId }).session(session);
+
+        // Supprimer les diplômes liés à l'employé
+        await Diplome.deleteMany({ id_employe: employeId }).session(session);
+
+        // Supprimer les décisions liées à l'employé
+        await Decision.deleteMany({ id_employe: employeId }).session(session);
+
+        // Supprimer le poste et le service (si existants) uniquement si aucun autre employé n'y est affecté
+        if (employeData.poste) {
+            const posteId = employeData.poste;
+            const posteCount = await Employe.countDocuments({ poste: posteId }).session(session);
+            if (posteCount === 0) {
+                await PosteModel.findByIdAndDelete(posteId).session(session);
+            }
+        }
+
+        if (employeData.service) {
+            const serviceId = employeData.service;
+            const serviceCount = await Employe.countDocuments({ service: serviceId }).session(session);
+            if (serviceCount === 0) {
+                await ServiceModel.findByIdAndDelete(serviceId).session(session);
+            }
+        }
+
+        // Supprimer l'employé
+        await employeData.deleteOne({ session });
+
+        // Enregistrer l'action et la notification
+        await enregistrerActionEtNotification(
+            session,
+            userId,
+            `Suppression de l'employé ${employeData.nom} par ${username}`,
+            "L'employé a été supprimé avec succès."
+        );
+
+        // Valider la transaction
+        await session.commitTransaction();
+        
+        // Répondre avec succès
+        res.status(200).json({ message: "Employé supprimé avec succès." });
+    } catch (error) {
+        // Annuler la transaction en cas d'erreur
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        res.status(500).json({ error: error.message });
+    } finally {
+        // Terminer la session
+        session.endSession();
+    }
+};
+
+
+// Mettre à jour un employé
+export const mettreAJourEmploye = async (req, res) => {
+    const { employeId } = req.params;
+    const { userId, username } = req.user; // Récupérer l'userId et le username de l'utilisateur connecté
+    const { employe, statut, affectation, diplome, decision, poste, service } = req.body; // Récupérer les données de la requête
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Récupérer l'employé existant
         const employeData = await Employe.findByIdAndUpdate(employeId, employe, { new: true, session });
 
         if (!employeData) {
             return res.status(404).json({ message: "Employé non trouvé" });
         }
 
+        // Mettre à jour ou sauvegarder le poste, si disponible
+        let posteId = employeData.poste; // Utiliser l'ID actuel du poste
+        if (poste) {
+            // Si un nouveau poste est fourni, mettre à jour l'existant ou créer un nouveau
+            const posteData = await PosteModel.findById(posteId); // Chercher le poste existant
+            if (posteData) {
+                // Mettre à jour le poste existant
+                await PosteModel.findByIdAndUpdate(posteId, poste, { session });
+            } else {
+                // Créer un nouveau poste si aucun n'existe
+                const newPoste = new PosteModel(poste);
+                const savedPoste = await newPoste.save({ session });
+                posteId = savedPoste._id;
+            }
+        }
+
+        // Mettre à jour ou sauvegarder le service, si disponible
+        let serviceId = employeData.service; // Utiliser l'ID actuel du service
+        if (service) {
+            // Si un nouveau service est fourni, mettre à jour l'existant ou créer un nouveau
+            const serviceData = await ServiceModel.findById(serviceId); // Chercher le service existant
+            if (serviceData) {
+                // Mettre à jour le service existant
+                await ServiceModel.findByIdAndUpdate(serviceId, service, { session });
+            } else {
+                // Créer un nouveau service si aucun n'existe
+                const newService = new ServiceModel(service);
+                const savedService = await newService.save({ session });
+                serviceId = savedService._id;
+            }
+        }
+
         // Mettre à jour le statut de l'employé
         await StatutEmploye.findOneAndUpdate({ id_employe: employeId }, statut, { new: true, session });
 
         // Mettre à jour l'affectation de l'employé
-        await AffectationEmploye.findOneAndUpdate({ id_employe: employeId }, affectation, { new: true, session });
+        await AffectationEmploye.findOneAndUpdate({ id_employe: employeId }, { 
+            ...affectation,
+            poste: posteId, // Lier l'affectation au poste
+            service: serviceId // Lier l'affectation au service
+        }, { new: true, session });
 
         // Mettre à jour les informations de diplôme, si disponibles
         if (diplome) {
@@ -151,6 +264,7 @@ export const mettreAJourEmploye = async (req, res) => {
     }
 };
 
+
 // Obtenir les détails d'un employé
 export const obtenirDetailsEmploye = async (req, res) => {
     const { employeId } = req.params;
@@ -159,7 +273,7 @@ export const obtenirDetailsEmploye = async (req, res) => {
         // Récupérer les informations de l'employé
         const employe = await Employe.findById(employeId);
         if (!employe) {
-            return res.status(404).json({ message: "Employé non trouvé", employeId             });
+            return res.status(404).json({ message: "Employé non trouvé", employeId });
         }
 
         // Récupérer les informations liées à cet employé
@@ -167,8 +281,8 @@ export const obtenirDetailsEmploye = async (req, res) => {
         const affectationEmploye = await AffectationEmploye.findOne({ id_employe: employeId });
         const diplomesEmploye = await Diplome.find({ id_employe: employeId });
         const decisionsEmploye = await Decision.find({ id_employe: employeId });
-        const posteEmploye = await PosteModel.find({ id_employe: employeId });
-        const serviceEmploye = await ServiceModel.find({ id_employe: employeId });
+        const posteEmploye = await PosteModel.findOne({ _id: employe.poste });
+        const serviceEmploye = await ServiceModel.findOne({ _id: employe.service });
 
         // Construire la réponse avec toutes les données
         const employeDetails = {
@@ -177,8 +291,8 @@ export const obtenirDetailsEmploye = async (req, res) => {
             affectation: affectationEmploye,
             diplome: diplomesEmploye,
             decision: decisionsEmploye,
-            poste: posteEmploye, 
-            service: serviceEmploye 
+            poste: posteEmploye,  // Poste de l'employé
+            service: serviceEmploye // Service de l'employé
         };
 
         // Envoyer la réponse avec toutes les données liées à l'employé
@@ -188,6 +302,7 @@ export const obtenirDetailsEmploye = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 export const obtenirTousLesEmployes = async (req, res) => {
     try {

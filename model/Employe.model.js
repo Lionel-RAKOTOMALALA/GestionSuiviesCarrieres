@@ -65,6 +65,16 @@ export const EmployeSchema = new Schema({
     adresse: {
         type: String,
         required: true
+    },   
+    poste: {
+        type: Schema.Types.ObjectId,
+        ref: 'Poste',  // Référence au modèle Poste
+        required: true  // Si chaque employé doit obligatoirement avoir un poste
+    },
+    service: {
+        type: Schema.Types.ObjectId,
+        ref: 'Service',  // Référence au modèle Service
+        required: true  // Indique qu'un employé doit obligatoirement être affecté à un service
     },
 });
 

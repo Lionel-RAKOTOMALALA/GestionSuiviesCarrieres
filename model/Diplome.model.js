@@ -5,16 +5,8 @@ const { Schema } = mongoose;
 
 // Définition du schéma Diplome
 const DiplomeSchema = new Schema({
-    id_diplome: {
-        type: String,
-        unique: true, // Assurez-vous qu'il est unique
-        required: true // Si vous le souhaitez
-    },
-    diplome: {
-        type: String,
-        required: [true, "Please provide the diploma obtained"],
-        maxlength: [255, "Diploma name cannot exceed 255 characters"]
-    },
+
+
     cursus: {
         type: String,
         required: [true, "Please provide the academic curriculum"],
