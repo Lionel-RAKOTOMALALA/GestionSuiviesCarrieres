@@ -8,7 +8,7 @@ export const ServiceSchema = new Schema({
         type: String,
         required: [true, "Please provide service name"],
     },
-    description: {
+    antenne: {
         type: String,
     }
 });

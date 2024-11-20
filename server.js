@@ -5,6 +5,7 @@ import router from './router/route.js';
 import employeRoutes from './router/employeRoutes.js';
 import carriereRoutes from './router/carriereRoutes.js';
 import decisionRoutes from './router/decisionRoutes.js';
+import serviceRoutes from './router/serviceRoute.js'
 import cors from 'cors';
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api', router);
 app.use('/api/employes', employeRoutes);
 app.use('/api/carrieres', carriereRoutes);
 app.use('/api/decisions', decisionRoutes);
+app.use('/api/services', serviceRoutes);
 
 /** Start server only and connect database */
 connect().then(() => {
